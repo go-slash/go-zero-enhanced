@@ -76,6 +76,14 @@ func writeType(writer io.Writer, tp spec.Type, config *config.Config) error {
 
 	// write doc for swagger
 	if config.AnnotateWithSwagger {
+		inBodyTagCount := 0
+		// if a response has more than one `in: body` tag, we should use `swagger:model` tag
+		for _, member := range structType.Members {
+			s := strings.Join(member.Docs, "")
+			if s != "" && strings.Contains(s, "in: body") {
+				inBodyTagCount++
+			}
+		}
 		stringBuilder := &strings.Builder{}
 		for _, v := range structType.Documents() {
 			stringBuilder.WriteString(fmt.Sprintf("\t%s\n", v))
@@ -86,7 +94,11 @@ func writeType(writer io.Writer, tp spec.Type, config *config.Config) error {
 			} else {
 				fmt.Fprintf(writer, "\t// The response data of %s \n", strings.TrimSuffix(tp.Name(), "Resp"))
 			}
-			fmt.Fprintf(writer, "\t// swagger:response %s\n", tp.Name())
+			if inBodyTagCount > 1 {
+				fmt.Fprintf(writer, "\t// swagger:model %s\n", tp.Name())
+			} else {
+				fmt.Fprintf(writer, "\t// swagger:response %s\n", tp.Name())
+			}
 		} else {
 			if stringBuilder.Len() > 0 {
 				fmt.Fprintf(writer, stringBuilder.String())
