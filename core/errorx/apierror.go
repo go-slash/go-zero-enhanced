@@ -20,3 +20,15 @@ func NewApiError(code int, msg string) error {
 func NewApiErrorWithoutMsg(code int) error {
 	return &ApiError{Code: code, Msg: ""}
 }
+
+func NewApiBadRequestError(msg string) error {
+	return NewApiError(400, msg)
+}
+
+func NewApiNotFoundError(msg string) error {
+	return NewApiError(404, msg)
+}
+
+func NewApiInternalServerError(msg string) error {
+	return NewApiError(500, msg)
+}
