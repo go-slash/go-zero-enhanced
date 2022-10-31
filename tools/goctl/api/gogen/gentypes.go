@@ -112,6 +112,11 @@ func writeType(writer io.Writer, tp spec.Type, config *config.Config) error {
 				} else {
 					fmt.Fprintf(writer, "\t// swagger:model %s\n", tp.Name())
 				}
+			} else {
+				if stringBuilder.Len() > 0 {
+					fmt.Fprintf(writer, stringBuilder.String())
+				}
+				fmt.Fprintf(writer, "\t// swagger:model %s\n", tp.Name())
 			}
 		}
 	}
