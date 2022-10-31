@@ -60,7 +60,7 @@ func genHandler(dir, rootPkg string, cfg *config.Config, group spec.Group, route
 		handlerDoc.WriteString("//\n")
 
 		// HasRequest
-		if len(route.RequestTypeName()) > 0 {
+		if len(route.RequestTypeName()) > 0 && strings.ToUpper(route.Method) != "GET" {
 			handlerDoc.WriteString(fmt.Sprintf(`// Parameters:
 			//  + name: body
 			//    require: true

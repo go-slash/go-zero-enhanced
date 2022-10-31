@@ -100,10 +100,19 @@ func writeType(writer io.Writer, tp spec.Type, config *config.Config) error {
 				fmt.Fprintf(writer, "\t// swagger:response %s\n", tp.Name())
 			}
 		} else {
-			if stringBuilder.Len() > 0 {
-				fmt.Fprintf(writer, stringBuilder.String())
+			if strings.HasSuffix(tp.Name(), "Req") {
+				if stringBuilder.Len() > 0 {
+					fmt.Fprintf(writer, stringBuilder.String())
+				}
+				if strings.HasSuffix(tp.Name(), "ParamReq") {
+					// https://goswagger.io/use/spec/params.html
+					// extract the operationId from the type name
+					operationId := strings.TrimSuffix(tp.Name(), "ParamReq")
+					fmt.Fprintf(writer, "\t// swagger:parameters %s %s\n ", tp.Name(), operationId)
+				} else {
+					fmt.Fprintf(writer, "\t// swagger:model %s\n", tp.Name())
+				}
 			}
-			fmt.Fprintf(writer, "\t// swagger:model %s\n", tp.Name())
 		}
 	}
 
