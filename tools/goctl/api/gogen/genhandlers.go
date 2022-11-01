@@ -52,11 +52,48 @@ func genHandler(dir, rootPkg string, cfg *config.Config, group spec.Group, route
 	handlerDoc = &strings.Builder{}
 
 	if cfg.AnnotateWithSwagger {
-		handlerDoc.WriteString(fmt.Sprintf("// swagger:route %s %s %s %s \n", route.Method, route.Path, group.GetAnnotation("group"), strings.TrimSuffix(handler, "Handler")))
+		var swaggerDescription string
+		var swaggerSummary string
+		var swaggerTags []string
+		var swaggerOperationId string
+
+		if value, ok := route.AtDoc.Properties["description"]; ok {
+			swaggerDescription = value
+		} else if value, ok := route.AtDoc.Properties["desc"]; ok {
+			swaggerDescription = value
+		} else {
+			swaggerDescription = strings.TrimPrefix(route.HandlerDoc[0], "//")
+		}
+
+		if value, ok := route.AtDoc.Properties["summary"]; ok {
+			swaggerSummary = value
+		} else if value, ok := route.AtDoc.Properties["sum"]; ok {
+			swaggerSummary = value
+		} else {
+			swaggerSummary = strings.TrimPrefix(route.HandlerDoc[0], "//")
+		}
+
+		if value, ok := route.AtDoc.Properties["tags"]; ok {
+			swaggerTags = strings.Split(value, ",")
+		} else if value, ok := route.AtDoc.Properties["tag"]; ok {
+			swaggerTags = []string{value}
+		} else {
+			swaggerTags = []string{group.GetAnnotation("group")}
+		}
+
+		if value, ok := route.AtDoc.Properties["operationId"]; ok {
+			swaggerOperationId = value
+		} else {
+			swaggerOperationId = strings.TrimSuffix(handler, "Handler")
+		}
+
+		swaggerTagValue := strings.Join(swaggerTags, " ")
+		//swagger:route [method] [path pattern] [?tag1 tag2 tag3] [operation id]
+		handlerDoc.WriteString(fmt.Sprintf("// swagger:route %s %s %s %s \n", route.Method, route.Path, swaggerTagValue, swaggerOperationId))
 		handlerDoc.WriteString("//\n")
-		handlerDoc.WriteString(fmt.Sprintf("// %s\n", route.AtDoc.Properties["summary"]))
+		handlerDoc.WriteString(fmt.Sprintf("// %s\n", swaggerDescription))
 		handlerDoc.WriteString("//\n")
-		handlerDoc.WriteString(fmt.Sprintf("// %s\n", route.AtDoc.Properties["description"]))
+		handlerDoc.WriteString(fmt.Sprintf("// %s\n", swaggerSummary))
 		handlerDoc.WriteString("//\n")
 
 		// HasRequest
