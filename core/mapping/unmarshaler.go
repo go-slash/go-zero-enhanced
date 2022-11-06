@@ -65,17 +65,17 @@ func NewUnmarshaler(key string, opts ...UnmarshalOption) *Unmarshaler {
 	return &unmarshaler
 }
 
-// UnmarshalKey unmarshals m into v with tag key.
+// UnmarshalKey unmarshal m into v with tag key.
 func UnmarshalKey(m map[string]interface{}, v interface{}) error {
 	return keyUnmarshaler.Unmarshal(m, v)
 }
 
-// Unmarshal unmarshals m into v.
+// Unmarshal unmarshal m into v.
 func (u *Unmarshaler) Unmarshal(m map[string]interface{}, v interface{}) error {
 	return u.UnmarshalValuer(mapValuer(m), v)
 }
 
-// UnmarshalValuer unmarshals m into v.
+// UnmarshalValuer unmarshal m into v.
 func (u *Unmarshaler) UnmarshalValuer(m Valuer, v interface{}) error {
 	return u.unmarshalWithFullName(simpleValuer{current: m}, v, "")
 }
