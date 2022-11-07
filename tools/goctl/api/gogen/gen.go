@@ -39,6 +39,8 @@ var (
 	VarStringBranch string
 	// VarStringStyle describes the style of output files.
 	VarStringStyle string
+	// VarBoolSwagger describes whether to generate swagger api docs.
+	VarBoolSwagger bool
 )
 
 // GoCommand gen go project files from command line
@@ -49,6 +51,7 @@ func GoCommand(_ *cobra.Command, _ []string) error {
 	home := VarStringHome
 	remote := VarStringRemote
 	branch := VarStringBranch
+	swagger := VarBoolSwagger
 	if len(remote) > 0 {
 		repo, _ := util.CloneIntoGitHome(remote, branch)
 		if len(repo) > 0 {
@@ -66,11 +69,11 @@ func GoCommand(_ *cobra.Command, _ []string) error {
 		return errors.New("missing -dir")
 	}
 
-	return DoGenProject(apiFile, dir, namingStyle)
+	return DoGenProject(apiFile, dir, namingStyle, swagger)
 }
 
 // DoGenProject gen go project files with api file
-func DoGenProject(apiFile, dir, style string) error {
+func DoGenProject(apiFile, dir, style string, swagger bool) error {
 	api, err := parser.Parse(apiFile)
 	if err != nil {
 		return err
@@ -81,9 +84,12 @@ func DoGenProject(apiFile, dir, style string) error {
 	}
 
 	cfg, err := config.NewConfig(style)
+
 	if err != nil {
 		return err
 	}
+
+	cfg.SwaggerAPIDocs = swagger
 
 	logx.Must(pathx.MkdirIfNotExist(dir))
 	rootPkg, err := golang.GetParentPackage(dir)
@@ -100,6 +106,7 @@ func DoGenProject(apiFile, dir, style string) error {
 	logx.Must(genHandlers(dir, rootPkg, cfg, api))
 	logx.Must(genLogic(dir, rootPkg, cfg, api))
 	logx.Must(genMiddleware(dir, cfg, api))
+	logx.Must(genSwagger(dir, cfg, api))
 
 	if err := backupAndSweep(apiFile); err != nil {
 		return err

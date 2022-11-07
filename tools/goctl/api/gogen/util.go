@@ -2,6 +2,7 @@ package gogen
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -22,6 +23,7 @@ type fileGenConfig struct {
 	category        string
 	templateFile    string
 	builtinTemplate string
+	json            bool
 	data            interface{}
 }
 
@@ -54,6 +56,34 @@ func genFile(c fileGenConfig) error {
 
 	code := golang.FormatCode(buffer.String())
 	_, err = fp.WriteString(code)
+	return err
+}
+
+func genPlainTextFile(c fileGenConfig) error {
+	fp, created, err := util.MaybeCreateFile(c.dir, c.subdir, c.filename)
+	if err != nil {
+		return err
+	}
+	if !created {
+		return nil
+	}
+
+	defer fp.Close()
+
+	var formatted bytes.Buffer
+
+	if c.json {
+		enc := json.NewEncoder(&formatted)
+		enc.SetIndent("", "  ")
+
+		if err := enc.Encode(c.data); err != nil {
+			return err
+		}
+	} else {
+		formatted.WriteString(c.data.(string))
+	}
+
+	_, err = fp.WriteString(formatted.String())
 	return err
 }
 

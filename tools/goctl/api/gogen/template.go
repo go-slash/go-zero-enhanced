@@ -18,6 +18,7 @@ const (
 	routesTemplateFile          = "routes.tpl"
 	routesAdditionTemplateFile  = "route-addition.tpl"
 	typesTemplateFile           = "types.tpl"
+	swaggerTemplateFile         = "swagger.tpl"
 )
 
 var templates = map[string]string{

@@ -15,9 +15,21 @@ const (
 	pathTagKey        = "path"
 	headerTagKey      = "header"
 	defaultSummaryKey = "summary"
+	validateTagKey    = "validate"
+
+	validateKeyLen = "len"
+	validateKeyMin = "min"
+	validateKeyMax = "max"
+	validateKeyEq  = "eq"
+	validateKeyNe  = "ne"
+	validateKeyLt  = "lt"
+	validateKeyLte = "lte"
+	validateKeyGt  = "gt"
+	validateKeyGte = "gte"
 )
 
 var definedKeys = []string{bodyTagKey, formTagKey, pathTagKey, headerTagKey}
+var validateKeys = []string{validateKeyLen, validateKeyMin, validateKeyMax, validateKeyEq, validateKeyNe, validateKeyLt, validateKeyLte, validateKeyGt, validateKeyGte}
 
 func (s Service) JoinPrefix() Service {
 	var groups []Group
@@ -104,9 +116,34 @@ func (m Member) GetPropertyName() (string, error) {
 	return "", errors.New("json property name not exist, member: " + m.Name)
 }
 
+// GetPropertyDefaultValue returns form for json tag default value
+func (m Member) GetPropertyDefaultValue() (string, error) {
+	tags := m.Tags()
+
+	for _, tag := range tags {
+		if tag.Key == formTagKey {
+			for _, option := range tag.Options {
+				if strings.HasPrefix(option, "default=") {
+					return strings.TrimPrefix(option, "default="), nil
+				}
+			}
+		}
+	}
+
+	return "", errors.New("property name not exist, member: " + m.Name)
+}
+
 // GetComment returns comment value of Member
 func (m Member) GetComment() string {
-	return strings.TrimSpace(m.Comment)
+	if m.Comment != "" {
+		return strings.TrimSpace(m.Comment)
+	}
+	if len(m.Docs) > 0 {
+		doc := strings.Join(m.Docs, ",")
+		doc = strings.Replace(doc, "//", "", -1)
+		return strings.TrimSpace(doc)
+	}
+	return ""
 }
 
 // IsBodyMember returns true if contains json tag
@@ -133,6 +170,51 @@ func (m Member) IsFormMember() bool {
 	tags := m.Tags()
 	for _, tag := range tags {
 		if tag.Key == formTagKey {
+			return true
+		}
+	}
+	return false
+}
+
+// IsPathMember returns true if contains path tag
+func (m Member) IsPathMember() bool {
+	if m.IsInline {
+		return false
+	}
+
+	tags := m.Tags()
+	for _, tag := range tags {
+		if tag.Key == pathTagKey {
+			return true
+		}
+	}
+	return false
+}
+
+// IsValidateMember returns true if contains validate tag
+func (m Member) IsValidateMember() bool {
+	if m.IsInline {
+		return false
+	}
+
+	tags := m.Tags()
+	for _, tag := range tags {
+		if tag.Key == validateTagKey {
+			return true
+		}
+	}
+	return false
+}
+
+// IsHeaderMember returns true if contains header tag
+func (m Member) IsHeaderMember() bool {
+	if m.IsInline {
+		return false
+	}
+
+	tags := m.Tags()
+	for _, tag := range tags {
+		if tag.Key == headerTagKey {
 			return true
 		}
 	}
@@ -175,6 +257,29 @@ func (m Member) GetEnumOptions() []string {
 	return nil
 }
 
+// GetValidateProperty return a slice contains all validation options
+func (m Member) GetValidateProperty() map[string]string {
+	if !m.IsBodyMember() {
+		return nil
+	}
+	dict := make(map[string]string)
+	tags := m.Tags()
+	for _, tag := range tags {
+		if tag.Key == validateTagKey {
+			options := tag.Options
+			for _, option := range options {
+				for _, key := range validateKeys {
+					if strings.Index(option, key+"=") == 0 {
+						option = strings.TrimPrefix(option, key+"=")
+						dict[key] = option
+					}
+				}
+			}
+		}
+	}
+	return dict
+}
+
 // GetBodyMembers returns all json fields
 func (t DefineStruct) GetBodyMembers() []Member {
 	var result []Member
@@ -191,6 +296,17 @@ func (t DefineStruct) GetFormMembers() []Member {
 	var result []Member
 	for _, member := range t.Members {
 		if member.IsFormMember() {
+			result = append(result, member)
+		}
+	}
+	return result
+}
+
+// GetPathMembers returns all path fields
+func (t DefineStruct) GetPathMembers() []Member {
+	var result []Member
+	for _, member := range t.Members {
+		if member.IsPathMember() {
 			result = append(result, member)
 		}
 	}

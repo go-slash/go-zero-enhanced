@@ -2,6 +2,11 @@ build:
 	go build -ldflags="-s -w" goctl.go
 	$(if $(shell command -v upx), upx goctl)
 
+build-and-install:
+	go build -ldflags="-s -w" goctl.go
+	mv goctl ~/go/bin/goctls
+	goctls template clean && goctls template init
+
 mac:
 	GOOS=darwin go build -ldflags="-s -w" -o goctl-darwin goctl.go
 	$(if $(shell command -v upx), upx goctl-darwin)

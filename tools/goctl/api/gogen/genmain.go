@@ -35,19 +35,27 @@ func genMain(dir, rootPkg string, cfg *config.Config, api *spec.ApiSpec) error {
 		category:        category,
 		templateFile:    mainTemplateFile,
 		builtinTemplate: mainTemplate,
-		data: map[string]string{
-			"importPackages": genMainImports(rootPkg),
+		data: map[string]interface{}{
+			"importPackages": genMainImports(rootPkg, cfg),
 			"serviceName":    configName,
+			"enableSwagger":  cfg.SwaggerAPIDocs,
 		},
 	})
 }
 
-func genMainImports(parentPkg string) string {
+func genMainImports(parentPkg string, cfg *config.Config) string {
 	var imports []string
 	imports = append(imports, fmt.Sprintf("\"%s\"", pathx.JoinPackages(parentPkg, configDir)))
 	imports = append(imports, fmt.Sprintf("\"%s\"", pathx.JoinPackages(parentPkg, handlerDir)))
 	imports = append(imports, fmt.Sprintf("\"%s\"\n", pathx.JoinPackages(parentPkg, contextDir)))
 	imports = append(imports, fmt.Sprintf("\"%s/core/conf\"", vars.ProjectOpenSourceURL))
 	imports = append(imports, fmt.Sprintf("\"%s/rest\"", vars.ProjectOpenSourceURL))
+
+	if cfg.SwaggerAPIDocs {
+		imports = append(imports, fmt.Sprintf("\"%s/core/service\"", vars.ProjectOpenSourceURL))
+		imports = append(imports, "\"net/http\"")
+		imports = append(imports, fmt.Sprintf("\"%s\"", pathx.JoinPackages(parentPkg, swaggerDir)))
+	}
+
 	return strings.Join(imports, "\n\t")
 }

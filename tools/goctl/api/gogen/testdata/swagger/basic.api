@@ -1,0 +1,69 @@
+type Request struct {
+    Name string `path:"name,options=you|me"`
+    CommonRequest
+}
+
+type CommonRequest struct {
+    Age string `form:"age"`
+}
+
+type Response struct {
+    Message string `json:"message"`
+    Pagination *Pagination `json:"pagination"`
+}
+
+type Pagination struct {
+    Page int `json:"page"`
+    Size int `json:"size"`
+}
+
+type CreateRequest {
+    Name string `json:"name,options=you|me"`
+    Age string `json:"age"`
+}
+
+type ListRequest {
+    Name string `form:"name,options=you|me"`
+    Age string `form:"age"`
+    ID string `path:"id"`
+}
+
+@server (
+    group: example
+)
+service A-api {
+
+    @doc(
+        summary: "Greet someone summary"
+        description: "Greet someone description"
+        tags: "greet"
+        name: "name of the person to greet"
+    )
+    @handler GreetHandler
+    get /greet/from/:name(Request) returns (Response)
+
+    @doc(
+        summary: "Greet2 someone"
+        description: "Greet2 someone"
+        name: "name of the person to greet"
+    )
+    @handler GreetHandler2
+    get /greet2/from/:name(Request) returns (Response)
+
+    @doc(
+        summary: "GreetHandler3"
+        description: "Greet3 someone"
+        name: "name of the person to greet"
+    )
+    @handler GreetHandler3
+    post /greet (CreateRequest) returns (Response)
+
+
+    @doc(
+        summary: "GreetHandler4"
+        description: "Greet4 someone"
+        name: "name of the person to greet"
+    )
+    @handler GreetHandler4
+    get /greet4/:id (ListRequest) returns (Response)
+}
