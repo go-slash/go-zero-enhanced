@@ -1,5 +1,6 @@
 type Request struct {
     Name string `path:"name,options=you|me"`
+    Foo  string `form:"foo,optional"`
     CommonRequest
 }
 

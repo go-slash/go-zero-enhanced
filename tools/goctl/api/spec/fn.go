@@ -84,6 +84,23 @@ func (m Member) IsOptional() bool {
 	return false
 }
 
+// IsOptionalInForm returns true if tag is optional in Params
+func (m Member) IsOptionalInForm() bool {
+	if !m.IsFormMember() {
+		return false
+	}
+
+	tag := m.Tags()
+	for _, item := range tag {
+		if item.Key == formTagKey {
+			if stringx.Contains(item.Options, "optional") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // IsOmitEmpty returns true if tag contains omitempty
 func (m Member) IsOmitEmpty() bool {
 	if !m.IsBodyMember() {

@@ -174,7 +174,7 @@ func renderQueryStruct(member spec.Member) swaggerParameterObject {
 
 	pObject := swaggerParameterObject{In: "query", Type: pType, Format: format}
 
-	pObject.Required = !member.IsOptional()
+	pObject.Required = !member.IsOptionalInForm()
 
 	if value, err := member.GetPropertyDefaultValue(); err == nil {
 		pObject.Default = value
