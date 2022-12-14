@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package hello;
+
+option go_package = "./slash";
+
+message HelloReq {
+  string in = 1;
+}
+
+message HelloResp {
+  string msg = 1;
+}
+
+message HiReq {
+  string in = 1;
+}
+
+message HiResp {
+  string msg = 1;
+}
+
+message SayHaloReq {
+  string in = 1;
+}
+
+message SayHaloResp {
+  string msg = 1;
+}
+
+service Greet {
+  /// group: foo
+  rpc SayHello(HelloReq) returns (HelloResp);
+
+  /// group: bar
+  rpc SayHi(HiReq) returns (HiResp);
+
+  rpc SayHalo(SayHaloReq) returns (SayHaloResp);
+}

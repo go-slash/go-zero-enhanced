@@ -81,3 +81,10 @@ func TestDefaultProtoParse_Option2(t *testing.T) {
 	assert.Equal(t, "stream", data.GoPackage)
 	assert.Equal(t, "stream", data.PbPackage)
 }
+
+func TestDefaultProtoParse_Option3(t *testing.T) {
+	p := NewDefaultProtoParser()
+	data, err := p.Parse("./test_option3.proto")
+	assert.Nil(t, err)
+	assert.Equal(t, "github.com/zeromicro/go-zero", data.GoPackage)
+}

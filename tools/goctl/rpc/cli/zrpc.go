@@ -96,6 +96,7 @@ func ZRPC(_ *cobra.Command, args []string) error {
 
 	var ctx generator.ZRpcContext
 	ctx.Multiple = VarBoolMultiple
+	ctx.UseRPCGroup = VarBoolGroup
 	ctx.Src = source
 	ctx.GoOutput = goOut
 	ctx.GrpcOutput = grpcOut

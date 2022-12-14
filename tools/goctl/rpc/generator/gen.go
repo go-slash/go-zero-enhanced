@@ -28,6 +28,8 @@ type ZRpcContext struct {
 	Output string
 	// Multiple is the flag to indicate whether the proto file is generated in multiple mode.
 	Multiple bool
+	// UseRPCGroup is the flag to indicate whether to user proto rpc group annotation.
+	UseRPCGroup bool
 }
 
 // Generate generates a rpc service, through the proto file,

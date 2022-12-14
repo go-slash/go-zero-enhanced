@@ -27,13 +27,14 @@ func (s *{{.server}}Server) {{.method}} ({{if .notStream}}ctx context.Context,{{
 var serverTemplate string
 
 // GenServer generates rpc server file, which is an implementation of rpc server
-func (g *Generator) GenServer(ctx DirContext, proto parser.Proto, cfg *conf.Config,
-	c *ZRpcContext) error {
-	if !c.Multiple {
-		return g.genServerInCompatibility(ctx, proto, cfg, c)
+func (g *Generator) GenServer(ctx DirContext, proto parser.Proto, cfg *conf.Config, c *ZRpcContext) error {
+	if c.Multiple {
+		return g.genServerGroup(ctx, proto, cfg)
 	}
-
-	return g.genServerGroup(ctx, proto, cfg)
+	if c.UseRPCGroup {
+		return g.genServerByRPCGroup(ctx, proto, cfg)
+	}
+	return g.genServerInCompatibility(ctx, proto, cfg, c)
 }
 
 func (g *Generator) genServerGroup(ctx DirContext, proto parser.Proto, cfg *conf.Config) error {
@@ -71,7 +72,7 @@ func (g *Generator) genServerGroup(ctx DirContext, proto parser.Proto, cfg *conf
 
 		head := util.GetHead(proto.Name)
 
-		funcList, err := g.genFunctions(proto.PbPackage, service, true)
+		funcList, err := g.genFunctions(proto.PbPackage, service, true, false)
 		if err != nil {
 			return err
 		}
@@ -90,13 +91,12 @@ func (g *Generator) genServerGroup(ctx DirContext, proto parser.Proto, cfg *conf
 		}
 
 		if err = util.With("server").GoFmt(true).Parse(text).SaveTo(map[string]interface{}{
-			"head": head,
-			"unimplementedServer": fmt.Sprintf("%s.Unimplemented%sServer", proto.PbPackage,
-				stringx.From(service.Name).ToCamel()),
-			"server":    stringx.From(service.Name).ToCamel(),
-			"imports":   strings.Join(imports.KeysStr(), pathx.NL),
-			"funcs":     strings.Join(funcList, pathx.NL),
-			"notStream": notStream,
+			"head":                head,
+			"unimplementedServer": fmt.Sprintf("%s.Unimplemented%sServer", proto.PbPackage, stringx.From(service.Name).ToCamel()),
+			"server":              stringx.From(service.Name).ToCamel(),
+			"imports":             strings.Join(imports.KeysStr(), pathx.NL),
+			"funcs":               strings.Join(funcList, pathx.NL),
+			"notStream":           notStream,
 		}, serverFile, true); err != nil {
 			return err
 		}
@@ -104,8 +104,68 @@ func (g *Generator) genServerGroup(ctx DirContext, proto parser.Proto, cfg *conf
 	return nil
 }
 
-func (g *Generator) genServerInCompatibility(ctx DirContext, proto parser.Proto,
-	cfg *conf.Config, c *ZRpcContext) error {
+func (g *Generator) genServerByRPCGroup(ctx DirContext, proto parser.Proto, cfg *conf.Config) error {
+	dir := ctx.GetServer()
+
+	svcImport := fmt.Sprintf(`"%v"`, ctx.GetSvc().Package)
+	pbImport := fmt.Sprintf(`"%v"`, ctx.GetPb().Package)
+
+	imports := collection.NewSet()
+	imports.AddStr(svcImport, pbImport)
+
+	head := util.GetHead(proto.Name)
+	service := proto.Service[0]
+	serverFilename, err := format.FileNamingFormat(cfg.NamingFormat, service.Name+"_server")
+	if err != nil {
+		return err
+	}
+
+	serverFile := filepath.Join(dir.Filename, serverFilename+".go")
+
+	for _, rpc := range service.RPC {
+		if rpc.GroupName != "" {
+			logicChildPkg, err := ctx.GetLogic().GetChildPackage(rpc.GroupName)
+			if err != nil {
+				return err
+			}
+			logicImport := fmt.Sprintf(`"%v"`, logicChildPkg)
+			imports.AddStr(logicImport)
+		} else {
+			logicImport := fmt.Sprintf(`"%v"`, ctx.GetLogic().Package)
+			imports.AddStr(logicImport)
+		}
+	}
+
+	funcList, err := g.genFunctions(proto.PbPackage, service, false, true)
+	if err != nil {
+		return err
+	}
+
+	text, err := pathx.LoadTemplate(category, serverTemplateFile, serverTemplate)
+	if err != nil {
+		return err
+	}
+
+	notStream := false
+
+	for _, rpc := range service.RPC {
+		if !rpc.StreamsRequest && !rpc.StreamsReturns {
+			notStream = true
+			break
+		}
+	}
+
+	return util.With("server").GoFmt(true).Parse(text).SaveTo(map[string]interface{}{
+		"head":                head,
+		"unimplementedServer": fmt.Sprintf("%s.Unimplemented%sServer", proto.PbPackage, stringx.From(service.Name).ToCamel()),
+		"server":              stringx.From(service.Name).ToCamel(),
+		"imports":             strings.Join(imports.KeysStr(), pathx.NL),
+		"funcs":               strings.Join(funcList, pathx.NL),
+		"notStream":           notStream,
+	}, serverFile, true)
+}
+
+func (g *Generator) genServerInCompatibility(ctx DirContext, proto parser.Proto, cfg *conf.Config, c *ZRpcContext) error {
 	dir := ctx.GetServer()
 	logicImport := fmt.Sprintf(`"%v"`, ctx.GetLogic().Package)
 	svcImport := fmt.Sprintf(`"%v"`, ctx.GetSvc().Package)
@@ -122,7 +182,7 @@ func (g *Generator) genServerInCompatibility(ctx DirContext, proto parser.Proto,
 	}
 
 	serverFile := filepath.Join(dir.Filename, serverFilename+".go")
-	funcList, err := g.genFunctions(proto.PbPackage, service, false)
+	funcList, err := g.genFunctions(proto.PbPackage, service, false, false)
 	if err != nil {
 		return err
 	}
@@ -141,17 +201,16 @@ func (g *Generator) genServerInCompatibility(ctx DirContext, proto parser.Proto,
 	}
 
 	return util.With("server").GoFmt(true).Parse(text).SaveTo(map[string]interface{}{
-		"head": head,
-		"unimplementedServer": fmt.Sprintf("%s.Unimplemented%sServer", proto.PbPackage,
-			stringx.From(service.Name).ToCamel()),
-		"server":    stringx.From(service.Name).ToCamel(),
-		"imports":   strings.Join(imports.KeysStr(), pathx.NL),
-		"funcs":     strings.Join(funcList, pathx.NL),
-		"notStream": notStream,
+		"head":                head,
+		"unimplementedServer": fmt.Sprintf("%s.Unimplemented%sServer", proto.PbPackage, stringx.From(service.Name).ToCamel()),
+		"server":              stringx.From(service.Name).ToCamel(),
+		"imports":             strings.Join(imports.KeysStr(), pathx.NL),
+		"funcs":               strings.Join(funcList, pathx.NL),
+		"notStream":           notStream,
 	}, serverFile, true)
 }
 
-func (g *Generator) genFunctions(goPackage string, service parser.Service, multiple bool) ([]string, error) {
+func (g *Generator) genFunctions(goPackage string, service parser.Service, multiple bool, useRPCGroup bool) ([]string, error) {
 	var (
 		functionList []string
 		logicPkg     string
@@ -163,18 +222,27 @@ func (g *Generator) genFunctions(goPackage string, service parser.Service, multi
 		}
 
 		var logicName string
-		if !multiple {
-			logicPkg = "logic"
-			logicName = fmt.Sprintf("%sLogic", stringx.From(rpc.Name).ToCamel())
-		} else {
+
+		if multiple {
 			nameJoin := fmt.Sprintf("%s_logic", service.Name)
 			logicPkg = strings.ToLower(stringx.From(nameJoin).ToCamel())
+			logicName = fmt.Sprintf("%sLogic", stringx.From(rpc.Name).ToCamel())
+		} else if useRPCGroup {
+			if rpc.GroupName != "" {
+				nameJoin := fmt.Sprintf("%s_logic", rpc.GroupName)
+				logicPkg = strings.ToLower(stringx.From(nameJoin).ToCamel())
+				logicName = fmt.Sprintf("%sLogic", stringx.From(rpc.Name).ToCamel())
+			} else {
+				logicPkg = "logic"
+				logicName = fmt.Sprintf("%sLogic", stringx.From(rpc.Name).ToCamel())
+			}
+		} else {
+			logicPkg = "logic"
 			logicName = fmt.Sprintf("%sLogic", stringx.From(rpc.Name).ToCamel())
 		}
 
 		comment := parser.GetComment(rpc.Doc())
-		streamServer := fmt.Sprintf("%s.%s_%s%s", goPackage, parser.CamelCase(service.Name),
-			parser.CamelCase(rpc.Name), "Server")
+		streamServer := fmt.Sprintf("%s.%s_%s%s", goPackage, parser.CamelCase(service.Name), parser.CamelCase(rpc.Name), "Server")
 		buffer, err := util.With("func").Parse(text).Execute(map[string]interface{}{
 			"server":     stringx.From(service.Name).ToCamel(),
 			"logicName":  logicName,

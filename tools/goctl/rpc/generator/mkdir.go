@@ -76,7 +76,7 @@ func mkdir(ctx *ctx.ProjectContext, proto parser.Proto, _ *conf.Config, c *ZRpcC
 	getChildPackage := func(parent, childPath string) (string, error) {
 		child := strings.TrimPrefix(childPath, parent)
 		abs := filepath.Join(parent, strings.ToLower(child))
-		if c.Multiple {
+		if c.Multiple || c.UseRPCGroup {
 			if err := pathx.MkdirIfNotExist(abs); err != nil {
 				return "", err
 			}
@@ -86,7 +86,17 @@ func mkdir(ctx *ctx.ProjectContext, proto parser.Proto, _ *conf.Config, c *ZRpcC
 		return filepath.ToSlash(pkg), nil
 	}
 
-	if !c.Multiple {
+	if c.Multiple {
+		inner[call] = Dir{
+			Filename: clientDir,
+			Package: filepath.ToSlash(filepath.Join(ctx.Path,
+				strings.TrimPrefix(clientDir, ctx.Dir))),
+			Base: filepath.Base(clientDir),
+			GetChildPackage: func(childPath string) (string, error) {
+				return getChildPackage(clientDir, childPath)
+			},
+		}
+	} else {
 		callDir := filepath.Join(ctx.WorkDir,
 			strings.ToLower(stringx.From(proto.Service[0].Name).ToCamel()))
 		if strings.EqualFold(proto.Service[0].Name, filepath.Base(proto.GoPackage)) {
@@ -100,16 +110,6 @@ func mkdir(ctx *ctx.ProjectContext, proto parser.Proto, _ *conf.Config, c *ZRpcC
 			Base: filepath.Base(callDir),
 			GetChildPackage: func(childPath string) (string, error) {
 				return getChildPackage(callDir, childPath)
-			},
-		}
-	} else {
-		inner[call] = Dir{
-			Filename: clientDir,
-			Package: filepath.ToSlash(filepath.Join(ctx.Path,
-				strings.TrimPrefix(clientDir, ctx.Dir))),
-			Base: filepath.Base(clientDir),
-			GetChildPackage: func(childPath string) (string, error) {
-				return getChildPackage(clientDir, childPath)
 			},
 		}
 	}

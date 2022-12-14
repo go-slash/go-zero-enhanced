@@ -63,7 +63,13 @@ func (p *DefaultProtoParser) Parse(src string, multiple ...bool) (Proto, error) 
 				if v == nil {
 					continue
 				}
-				serv.RPC = append(serv.RPC, &RPC{RPC: v})
+				r2 := &RPC{RPC: v}
+				if v.Comment != nil && v.Comment.ExtraSlash && v.Comment.Lines[0] != "" {
+					if strings.Contains(v.Comment.Lines[0], "group:") {
+						r2.GroupName = strings.Trim(strings.Split(v.Comment.Lines[0], "group:")[1], " ")
+					}
+				}
+				serv.RPC = append(serv.RPC, r2)
 			}
 
 			serviceList = append(serviceList, serv)

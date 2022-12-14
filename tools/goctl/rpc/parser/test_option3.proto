@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option go_package = "github.com/zeromicro/go-zero";
+
+message HelloReq {
+  string in = 1;
+
+}
+
+message HelloResp {
+  string msg = 1;
+}
+
+message HiReq {
+  string in = 1;
+}
+
+message HiResp {
+  string msg = 1;
+}
+
+
+service Greet {
+  /// group: foo
+  rpc Hello(HelloReq) returns (HelloResp);
+
+  /// group: bar
+  rpc SayHi(HiReq) returns (HiResp);
+}
