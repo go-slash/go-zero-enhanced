@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"github.com/zeromicro/go-zero/rest/httpx"
+	"github.com/zeromicro/go-zero/rest"
 	"net/http"
 	"text/template"
 )
@@ -18,17 +19,30 @@ type Opts func(*swaggerConfig)
 
 // SwaggerOpts configures the Doc middlewares.
 type swaggerConfig struct {
-	// SpecURL the url to find the spec for
-	SpecURL string
+	// SpecURLs the urls to find the spec for
+	SpecURLs []rest.SwaggerSpecConf
 	// SwaggerHost for the js that generates the swagger ui site
 	SwaggerHost string
     // SwaggerServerName for the js that generates the swagger ui site
 	SwaggerServerName string
 }
 
+func WithSpecURLs(urls []rest.SwaggerSpecConf) Opts {
+	return func(config *swaggerConfig) {
+		if len(urls) > 0 {
+			config.SpecURLs = urls
+		}
+	}
+}
+
 func Docs(basePath string, opts ...Opts) http.HandlerFunc {
 	config := &swaggerConfig{
-		SpecURL:     basePath + "/swagger.json",
+		SpecURLs:     []rest.SwaggerSpecConf{
+			{
+				URL: basePath + "/swagger.json",
+				Name: "default",
+			},
+		},
 		SwaggerHost: "https://cdn.bootcdn.net/ajax/libs/swagger-ui/4.15.2",
 		SwaggerServerName: "{{.serviceName}}",
 	}

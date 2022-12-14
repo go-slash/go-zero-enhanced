@@ -22,12 +22,12 @@ func main() {
 	handler.RegisterHandlers(server, ctx)
 
 	{{if .enableSwagger}}
-	if c.Mode == service.DevMode {
+	if c.Swagger.Enabled {
 		server.AddRoutes([]rest.Route{
 			{
 				Method:  http.MethodGet,
 				Path:    "/swagger",
-				Handler: swagger.Docs("/swagger"),
+				Handler: swagger.Docs("/swagger", swagger.WithSpecURLs(c.Swagger.SpecURLs)),
 			},
 			{
 				Method:  http.MethodGet,

@@ -48,5 +48,16 @@ type (
 		Timeout      int64         `json:",default=3000"`
 		CpuThreshold int64         `json:",default=900,range=[0:1000]"`
 		Signature    SignatureConf `json:",optional"`
+		Swagger      SwaggerConf   `json:",optional"`
+	}
+
+	SwaggerConf struct {
+		Enabled  bool              `json:",default=false"`
+		SpecURLs []SwaggerSpecConf `json:",optional"`
+	}
+
+	SwaggerSpecConf struct {
+		Name string
+		URL  string
 	}
 )

@@ -43,7 +43,13 @@
             ],
             layout: "StandaloneLayout",
             validatorUrl: null,
-            url: "{{ .SpecURL }}",
+            urls: [{{ range .SpecURLs }}
+                {
+                    name: "{{ .Name }}",
+                    url: "{{ .URL }}"
+                },
+                {{ end }}
+            ]
         })
         // End Swagger UI call region
         window.ui = ui
