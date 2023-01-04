@@ -230,6 +230,10 @@ func SetUp(c LogConf) (err error) {
 	setupOnce.Do(func() {
 		setupLogLevel(c)
 
+		if !c.Stat {
+			DisableStat()
+		}
+
 		if len(c.TimeFormat) > 0 {
 			timeFormat = c.TimeFormat
 		}
