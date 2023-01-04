@@ -140,6 +140,11 @@ func renderServiceRoutes(service spec.Service) (pathsObject swaggerPathsObject) 
 
 			if group.Annotation.Properties["jwt"] != "" {
 				operationObject.Security = &[]swaggerSecurityRequirementObject{{"Bearer": []string{}}}
+			} else if group.Annotation.Properties["middleware"] != "" {
+				middlewareStr := strings.ToLower(group.Annotation.Properties["middleware"])
+				if strings.Contains(middlewareStr, "jwt") {
+					operationObject.Security = &[]swaggerSecurityRequirementObject{{"Bearer": []string{}}}
+				}
 			}
 
 			switch strings.ToUpper(targetRoute.Method) {
